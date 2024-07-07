@@ -56,13 +56,6 @@ func (d *Database) MakeMigrations() {
 	log.Println("Migrations applied successfully!")
 }
 
-// func (d *Database) SaveCity(city models.City) {
-// 	_, err := d.db.Exec("INSERT INTO cities (name, country, lat, lon) VALUES ($1, $2, $3, $4) RETURNING id", city.Name, city.Country, city.Lat, city.Lon)
-// 	if err != nil {
-// 		log.Fatal("Error saving city:", err)
-// 	}
-// }
-
 func (d *Database) SaveCity(city models.City) {
 	var id int64
 	d.db.QueryRow("INSERT INTO cities (name, country, lat, lon) VALUES ($1, $2, $3, $4) RETURNING id", city.Name, city.Country, city.Lat, city.Lon).Scan(&id)
