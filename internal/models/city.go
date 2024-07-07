@@ -7,3 +7,7 @@ type City struct {
 	Lon         float64      `json:"lon"`
 	Predictions []Prediction `json:"predictions"`
 }
+
+type CityLight struct {
+	Name string `json:"name"`
+}

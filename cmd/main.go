@@ -25,9 +25,15 @@ func main() {
 
 	db.MakeMigrations()
 
-	cities := config.StartCities
-	for _, city := range cities {
-		handlers.SaveCity(city, db)
+	dbcities, err := db.GetCitiesList()
+	if err != nil {
+		log.Fatal("Error on getting cities:", err)
+	}
+	if len(dbcities) == 0 {
+		cities := config.StartCities
+		for _, city := range cities {
+			handlers.SaveCity(city, db)
+		}
 	}
 
 	fmt.Println("Done!")

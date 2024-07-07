@@ -7,8 +7,15 @@ import (
 	"net/http"
 	"weather4you/internal/config"
 	"weather4you/internal/models"
-	"weather4you/internal/weatherapi/apimodels"
 )
+
+type City struct {
+	Name       string
+	Lat        float64
+	Lon        float64
+	Country    string
+	LocalNames map[string]string
+}
 
 func FindCity(cityName string) (models.City, error) {
 
@@ -24,7 +31,7 @@ func FindCity(cityName string) (models.City, error) {
 	}
 	defer resp.Body.Close()
 
-	var cities []apimodels.City
+	var cities []City
 
 	if err := json.NewDecoder(resp.Body).Decode(&cities); err != nil {
 		return models.City{}, err
@@ -35,10 +42,18 @@ func FindCity(cityName string) (models.City, error) {
 	}
 
 	firstCity := cities[0]
-	return models.City{
+
+	city := models.City{
 		Name:    firstCity.Name,
 		Lat:     firstCity.Lat,
 		Lon:     firstCity.Lon,
 		Country: firstCity.Country,
-	}, nil
+	}
+
+	city.Predictions, err = GetPredictions(city.Lat, city.Lon)
+	if err != nil {
+		return models.City{}, err
+	}
+
+	return city, nil
 }
