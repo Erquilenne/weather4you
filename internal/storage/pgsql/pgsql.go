@@ -56,7 +56,7 @@ func (d *Database) MakeMigrations() {
 		log.Fatal("Error applying migrations:", err)
 	}
 
-	log.Println("Migrations applied successfully!")
+	log.Println("Migrations up to date")
 }
 
 func (d *Database) SaveCity(city dbModels.City) error {
@@ -152,7 +152,6 @@ func (d *Database) GetCitiesListWithPredictions() ([]dbModels.City, error) {
 		}
 
 		if city, ok := cityMap[cityName]; ok {
-			// City already exists in map, add prediction to existing city
 			prediction := dbModels.Prediction{
 				Temp: temp,
 				Date: date,
@@ -160,7 +159,6 @@ func (d *Database) GetCitiesListWithPredictions() ([]dbModels.City, error) {
 			}
 			city.Predictions = append(city.Predictions, prediction)
 		} else {
-			// Create a new city and add prediction
 			city := &dbModels.City{
 				Name:    cityName,
 				Country: country,
@@ -178,7 +176,6 @@ func (d *Database) GetCitiesListWithPredictions() ([]dbModels.City, error) {
 		}
 	}
 
-	// Convert map values to slice of cities
 	for _, city := range cityMap {
 		cities = append(cities, *city)
 	}
