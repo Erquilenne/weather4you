@@ -6,7 +6,6 @@ import (
 	"weather4you/internal/weatherapi"
 )
 
-// TODO take city from api and save it to postgres
 func SaveCity(city string, d *pgsql.Database) error {
 	fmt.Println("Saving city:", city)
 	findedCity, err := weatherapi.FindCity(city)
