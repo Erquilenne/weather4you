@@ -2,10 +2,12 @@ package pgsql
 
 import (
 	"database/sql"
-	"encoding/json"
+	"fmt"
 	"log"
+	"time"
 
-	"weather4you/internal/models"
+	dbModels "weather4you/internal/models/db"
+	reqModels "weather4you/internal/models/request"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
@@ -27,8 +29,9 @@ func NewDatabase(connectionString string) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
+	database := &Database{db: db}
 
-	return &Database{db: db}, nil
+	return database, nil
 }
 
 func (d *Database) Close() error {
@@ -56,20 +59,21 @@ func (d *Database) MakeMigrations() {
 	log.Println("Migrations applied successfully!")
 }
 
-func (d *Database) SaveCity(city models.City) {
+func (d *Database) SaveCity(city dbModels.City) error {
 	var id int64
+	fmt.Println(city.Name)
 	d.db.QueryRow("INSERT INTO cities (name, country, lat, lon) VALUES ($1, $2, $3, $4) RETURNING id", city.Name, city.Country, city.Lat, city.Lon).Scan(&id)
 	for _, prediction := range city.Predictions {
-		infoJSON, err := json.Marshal(prediction.Info)
-		_, err = d.db.Exec("INSERT INTO predictions (city_id, temp, date, info) VALUES ($1, $2, $3, $4)", id, prediction.Temp, prediction.Date, infoJSON)
+		_, err := d.db.Exec("INSERT INTO predictions (city_id, temp, date, info) VALUES ($1, $2, $3, $4)", id, prediction.Temp, prediction.Date, prediction.Info)
 		if err != nil {
 			log.Fatal("Error inserting prediction: ", err)
 		}
 	}
+	return nil
 }
 
-func (d *Database) GetCitiesList() ([]models.CityLight, error) {
-	var cities []models.CityLight
+func (d *Database) GetCitiesList() ([]reqModels.CityLight, error) {
+	var cities []reqModels.CityLight
 
 	rows, err := d.db.Query("SELECT name FROM cities")
 	if err != nil {
@@ -78,7 +82,7 @@ func (d *Database) GetCitiesList() ([]models.CityLight, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var city models.CityLight
+		var city reqModels.CityLight
 		err := rows.Scan(&city.Name)
 		if err != nil {
 			return nil, err
@@ -87,4 +91,123 @@ func (d *Database) GetCitiesList() ([]models.CityLight, error) {
 	}
 
 	return cities, nil
+}
+
+func (d *Database) GetCitiesLightListWithPredictions() ([]reqModels.CityLight, error) {
+	var cities []reqModels.CityLight
+
+	query := `
+		SELECT c.name
+		FROM cities c
+		WHERE EXISTS (
+			SELECT 1
+			FROM predictions p
+			WHERE p.city_id = c.id
+		)
+	`
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var city reqModels.CityLight
+		err := rows.Scan(&city.Name)
+		if err != nil {
+			return nil, err
+		}
+		cities = append(cities, city)
+	}
+
+	return cities, nil
+}
+
+func (d *Database) GetCitiesListWithPredictions() ([]dbModels.City, error) {
+	var cities []dbModels.City
+
+	query := `
+        SELECT c.name, c.country, c.lat, c.lon, p.temp, p.date, p.info
+        FROM cities c
+        JOIN predictions p ON p.city_id = c.id
+    `
+	rows, err := d.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	cityMap := make(map[string]*dbModels.City) // Map to store cities by name
+
+	for rows.Next() {
+		var cityName, country string
+		var lat, lon float64
+		var temp int
+		var date time.Time
+		var info []byte
+
+		err := rows.Scan(&cityName, &country, &lat, &lon, &temp, &date, &info)
+		if err != nil {
+			return nil, err
+		}
+
+		if city, ok := cityMap[cityName]; ok {
+			// City already exists in map, add prediction to existing city
+			prediction := dbModels.Prediction{
+				Temp: temp,
+				Date: date,
+				Info: string(info),
+			}
+			city.Predictions = append(city.Predictions, prediction)
+		} else {
+			// Create a new city and add prediction
+			city := &dbModels.City{
+				Name:    cityName,
+				Country: country,
+				Lat:     lat,
+				Lon:     lon,
+				Predictions: []dbModels.Prediction{
+					{
+						Temp: temp,
+						Date: date,
+						Info: string(info),
+					},
+				},
+			}
+			cityMap[cityName] = city
+		}
+	}
+
+	// Convert map values to slice of cities
+	for _, city := range cityMap {
+		cities = append(cities, *city)
+	}
+
+	return cities, nil
+}
+
+func (d *Database) GetCityWithPrediction(name string, date time.Time) (*reqModels.CityWithPrediction, error) {
+	query := `
+		SELECT c.name, c.country, c.lat, c.lon, p.temp, p.date, p.info
+		FROM cities c
+		JOIN predictions p ON p.city_id = c.id
+		WHERE c.name = $1 AND p.date = $2
+		LIMIT 1
+	`
+	row := d.db.QueryRow(query, name, date)
+
+	var city reqModels.CityWithPrediction
+	var prediction dbModels.Prediction
+
+	err := row.Scan(&city.Name, &city.Country, &city.Lat, &city.Lon, &prediction.Temp, &prediction.Date, &prediction.Info)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	city.Prediction = prediction
+
+	return &city, nil
 }

@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"weather4you/internal/config"
-	"weather4you/internal/handlers"
+	"weather4you/internal/fillup"
+	"weather4you/internal/http-server/handlers"
 	"weather4you/internal/storage/pgsql"
 )
 
@@ -32,10 +34,22 @@ func main() {
 	if len(dbcities) == 0 {
 		cities := config.StartCities
 		for _, city := range cities {
-			handlers.SaveCity(city, db)
+			err := fillup.SaveCity(city, db)
+			if err != nil {
+				log.Fatal("Error on saving city:", err)
+			}
 		}
 	}
 
 	fmt.Println("Done!")
+
+	handler := handlers.NewHandler(db)
+	http.HandleFunc("/list/", handler.GetList)
+	http.HandleFunc("/predictions/", handler.GetPredictionsList)
+	http.HandleFunc("/prediction/", handler.GetCityWithPrediction)
+
+	port := ":8080"
+	fmt.Printf("Server is running on port %s\n", port)
+	log.Fatal(http.ListenAndServe(port, nil))
 
 }

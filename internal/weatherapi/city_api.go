@@ -6,44 +6,37 @@ import (
 	"log"
 	"net/http"
 	"weather4you/internal/config"
-	"weather4you/internal/models"
+	db "weather4you/internal/models/db"
+	response "weather4you/internal/models/response"
 )
 
-type City struct {
-	Name       string
-	Lat        float64
-	Lon        float64
-	Country    string
-	LocalNames map[string]string
-}
-
-func FindCity(cityName string) (models.City, error) {
+func FindCity(cityName string) (db.City, error) {
 
 	config, err := config.LoadConfig("config/config.json")
 	if err != nil {
-		log.Fatal("Error loading configuration:", err)
+		log.Fatal("Error loading configuration in city:", err)
 	}
 	url := fmt.Sprintf("http://api.openweathermap.org/geo/1.0/direct?q=%s&limit=1&appid=%s", cityName, config.WeatherApiToken)
 
 	resp, err := http.Get(url)
 	if err != nil {
-		return models.City{}, err
+		return db.City{}, err
 	}
 	defer resp.Body.Close()
 
-	var cities []City
+	var cities []response.CityResponse
 
 	if err := json.NewDecoder(resp.Body).Decode(&cities); err != nil {
-		return models.City{}, err
+		return db.City{}, err
 	}
 
 	if len(cities) == 0 {
-		return models.City{}, fmt.Errorf("City not found")
+		return db.City{}, fmt.Errorf("City not found")
 	}
 
 	firstCity := cities[0]
 
-	city := models.City{
+	city := db.City{
 		Name:    firstCity.Name,
 		Lat:     firstCity.Lat,
 		Lon:     firstCity.Lon,
@@ -52,7 +45,7 @@ func FindCity(cityName string) (models.City, error) {
 
 	city.Predictions, err = GetPredictions(city.Lat, city.Lon)
 	if err != nil {
-		return models.City{}, err
+		return db.City{}, err
 	}
 
 	return city, nil
