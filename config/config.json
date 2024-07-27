@@ -6,7 +6,7 @@
       "password": "admin",
       "dbname": "weather4you"
     },
-    "weather_api_token": "past your token here",
+    "weather_api_token": "311bb71106bff650f024a7b07b293d43",
     "start_cities": [
       "Москва",
       "Санкт-Петербург",
@@ -27,5 +27,17 @@
       "Амстердам",
       "Киев",
       "Варшава"
-    ]
+    ],
+    "logger": {
+      "development": true,
+      "disable_caller": false,
+      "disable_stacktrace": false,
+      "encoding": "json",
+      "level": "info"
+    },
+    "server": {
+      "mode": "Development",
+      "version": "1.0.0",
+      "ssl": true
+    }
   }

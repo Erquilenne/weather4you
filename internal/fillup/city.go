@@ -1,21 +1,39 @@
 package fillup
 
 import (
-	"fmt"
-	"weather4you/internal/storage/pgsql"
+	"weather4you/config"
+	models "weather4you/internal/models/db"
 	"weather4you/internal/weatherapi"
+	"weather4you/pkg/logger"
 )
 
-func SaveCity(city string, d *pgsql.Database) error {
-	fmt.Println("Saving city:", city)
-	findedCity, err := weatherapi.FindCity(city)
-	if err != nil {
-		return err
+//go:generate go run github.com/vektra/mockery/v2@v2.43.2 --name=Saver
+type Saver interface {
+	SaveCity(city models.City) error
+}
+
+func FindAndSaveCity(cityName string, d Saver, cfg *config.Config, logger logger.Logger) {
+	finder := weatherapi.NewCityFinder(cfg, logger)
+	city := findCity(cityName, finder)
+	city.Predictions = findPredictions(city.Lat, city.Lon, finder)
+
+	if city.Predictions == nil {
+		logger.Warnf("Predictions not found in city: %s", city.Name)
 	}
-	fmt.Println("Found city:", findedCity)
-	err = d.SaveCity(findedCity)
+
+	err := d.SaveCity(city)
 	if err != nil {
-		return err
+		logger.Fatalf("SaveCity error: %s", err)
 	}
-	return nil
+	logger.Infof("City saved: %s", city.Name)
+}
+
+func findCity(cityName string, finder weatherapi.Finder) models.City {
+	city := finder.FindCity(cityName)
+	return city
+}
+
+func findPredictions(lat float64, lon float64, finder weatherapi.Finder) []models.Prediction {
+	predictions := finder.FindPredictions(lat, lon)
+	return predictions
 }

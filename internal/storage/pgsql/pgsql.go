@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"weather4you/internal/config"
 	dbModels "weather4you/internal/models/db"
 	reqModels "weather4you/internal/models/request"
 
@@ -16,11 +17,15 @@ import (
 )
 
 type Database struct {
-	db *sql.DB
+	db  *sql.DB
+	cfg config.Config
 }
 
-func NewDatabase(connectionString string) (*Database, error) {
-	db, err := sql.Open("postgres", connectionString)
+func NewDatabase(cfg config.Config) (*Database, error) {
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+		cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Database.Password, cfg.Database.DBName)
+
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}
@@ -29,9 +34,13 @@ func NewDatabase(connectionString string) (*Database, error) {
 	if err != nil {
 		return nil, err
 	}
-	database := &Database{db: db}
+	database := &Database{db: db, cfg: cfg}
 
 	return database, nil
+}
+
+func (d *Database) Stats() sql.DBStats {
+	return d.db.Stats()
 }
 
 func (d *Database) Close() error {

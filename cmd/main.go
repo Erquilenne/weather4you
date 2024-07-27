@@ -4,24 +4,39 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"weather4you/internal/config"
 	"weather4you/internal/fillup"
 	"weather4you/internal/http-server/handlers"
 	"weather4you/internal/storage/pgsql"
+	"weather4you/pkg/logger"
+	"weather4you/pkg/utils"
 )
 
 func main() {
-	config, err := config.LoadConfig("config/config.json")
+	log.Println("Starting api server")
+
+	configPath := utils.GetConfigPath(os.Getenv("config"))
+
+	cfgFile, err := config.LoadConfig(configPath)
 	if err != nil {
-		log.Fatal("Error loading configuration:", err)
+		log.Fatalf("LoadConfig: %s", err)
 	}
 
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		config.Database.Host, config.Database.Port, config.Database.User, config.Database.Password, config.Database.DBName)
-
-	db, err := pgsql.NewDatabase(connStr)
+	cfg, err := config.ParseConfig(cfgFile)
 	if err != nil {
-		log.Fatal("Error opening database connection:", err)
+		log.Fatalf("ParseConfig: %s", err)
+	}
+
+	appLogger := logger.NewApiLogger(cfg)
+	appLogger.InitLogger()
+	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s, SSL: %v", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode, cfg.Server.SSL)
+
+	db, err := pgsql.NewDatabase(*cfg)
+	if err != nil {
+		appLogger.Fatalf("Postgresql init: %s", err)
+	} else {
+		appLogger.Infof("Postgres connected, Status: %#v", db.Stats())
 	}
 	defer db.Close()
 
@@ -32,9 +47,9 @@ func main() {
 		log.Fatal("Error on getting cities:", err)
 	}
 	if len(dbcities) == 0 {
-		cities := config.StartCities
+		cities := cfg.StartCities
 		for _, city := range cities {
-			err := fillup.SaveCity(city, db)
+			err := fillup.FindAndSaveCity(city, db, cfg)
 			if err != nil {
 				log.Fatal("Error on saving city:", err)
 			}

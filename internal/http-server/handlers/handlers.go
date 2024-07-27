@@ -5,12 +5,20 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+	db "weather4you/internal/models/db"
 	models "weather4you/internal/models/request"
 	"weather4you/internal/storage/pgsql"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.43.2 --name=DatabaseGetter
+type DatabaseGetter interface {
+	GetCitiesListWithPredictions() ([]db.City, error)
+	GetCitiesLightListWithPredictions() ([]models.CityLight, error)
+	GetCityWithPrediction(name string, date time.Time) (*models.CityWithPrediction, error)
+}
+
 type Handler struct {
-	db *pgsql.Database
+	db DatabaseGetter
 }
 
 func NewHandler(db *pgsql.Database) *Handler {
