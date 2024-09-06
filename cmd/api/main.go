@@ -5,12 +5,16 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"weather4you/internal/config"
-	"weather4you/internal/fillup"
+	"weather4you/config"
 	"weather4you/internal/http-server/handlers"
-	"weather4you/internal/storage/pgsql"
+	"weather4you/pkg/db/postgres"
 	"weather4you/pkg/logger"
 	"weather4you/pkg/utils"
+
+	"github.com/opentracing/opentracing-go"
+	"github.com/uber/jaeger-client-go"
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	"github.com/uber/jaeger-lib/metrics"
 )
 
 func main() {
@@ -32,7 +36,7 @@ func main() {
 	appLogger.InitLogger()
 	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s, SSL: %v", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode, cfg.Server.SSL)
 
-	db, err := pgsql.NewDatabase(*cfg)
+	db, err := postgres.NewPsqlDB(cfg)
 	if err != nil {
 		appLogger.Fatalf("Postgresql init: %s", err)
 	} else {
@@ -40,21 +44,30 @@ func main() {
 	}
 	defer db.Close()
 
-	db.MakeMigrations()
+	jaegerCfgInstance := jaegercfg.Configuration{
+		ServiceName: cfg.Jaeger.ServiceName,
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  jaeger.SamplerTypeConst,
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			LogSpans:           cfg.Jaeger.LogSpans,
+			LocalAgentHostPort: cfg.Jaeger.Host,
+		},
+	}
 
-	dbcities, err := db.GetCitiesList()
+	tracer, closer, err := jaegerCfgInstance.NewTracer(
+		jaegercfg.Logger(jaeger.StdLogger),
+		jaegercfg.Metrics(metrics.NullFactory),
+	)
 	if err != nil {
-		log.Fatal("Error on getting cities:", err)
+		log.Fatal("cannot create tracer", err)
 	}
-	if len(dbcities) == 0 {
-		cities := cfg.StartCities
-		for _, city := range cities {
-			err := fillup.FindAndSaveCity(city, db, cfg)
-			if err != nil {
-				log.Fatal("Error on saving city:", err)
-			}
-		}
-	}
+	appLogger.Info("Jaeger connected")
+
+	opentracing.SetGlobalTracer(tracer)
+	defer closer.Close()
+	appLogger.Info("Opentracing connected")
 
 	fmt.Println("Done!")
 

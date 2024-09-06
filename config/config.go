@@ -7,6 +7,15 @@ import (
 	"github.com/spf13/viper"
 )
 
+type Config struct {
+	Database        DatabaseConfig `json:"database"`
+	Logger          Logger         `json:"logger"`
+	Server          ServerConfig   `json:"server"`
+	StartCities     []string       `json:"start_cities"`
+	WeatherApiToken string         `json:"weather_api_token"`
+	Jaeger          Jaeger         `json:"jaeger"`
+}
+
 type DatabaseConfig struct {
 	Host     string `json:"host"`
 	Port     string `json:"port"`
@@ -21,20 +30,18 @@ type ServerConfig struct {
 	SSL        bool   `json:"ssl"`
 }
 
-type Config struct {
-	Database        DatabaseConfig `json:"database"`
-	Logger          Logger         `json:"logger"`
-	Server          ServerConfig   `json:"server"`
-	StartCities     []string       `json:"start_cities"`
-	WeatherApiToken string         `json:"weather_api_token"`
-}
-
 type Logger struct {
 	Development       bool   `json:"development"`
 	DisableCaller     bool   `json:"disable_caller"`
 	DisableStacktrace bool   `json:"disable_stacktrace"`
 	Encoding          string `json:"encoding"`
 	Level             string `json:"level"`
+}
+
+type Jaeger struct {
+	Host        string
+	ServiceName string
+	LogSpans    bool
 }
 
 func LoadConfig(filename string) (*viper.Viper, error) {

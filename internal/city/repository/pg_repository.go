@@ -10,13 +10,13 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
-type newsRepo struct {
+type cityRepo struct {
 	db *sql.DB
 }
 
 // News repository constructor
 func NewNewsRepository(db *sql.DB) city.Repository {
-	return &newsRepo{db: db}
+	return &cityRepo{db: db}
 }
 
 // func (d *newsRepo) MakeMigrations() {
@@ -41,7 +41,7 @@ func NewNewsRepository(db *sql.DB) city.Repository {
 // 	log.Println("Migrations up to date")
 // }
 
-func (d *newsRepo) Create(ctx context.Context, city *models.CityDB) error {
+func (d *cityRepo) Create(ctx context.Context, city *models.CityDB) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.Create")
 	defer span.Finish()
 	var id int64
@@ -55,12 +55,13 @@ func (d *newsRepo) Create(ctx context.Context, city *models.CityDB) error {
 	return nil
 }
 
-func (d *newsRepo) GetCitiesList(ctx context.Context) ([]*models.CityLight, error) {
+func (d *cityRepo) GetCitiesList(ctx context.Context) ([]*models.CityLight, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.GetCitiesList")
 	defer span.Finish()
 	var cities []*models.CityLight
 
-	rows, err := d.db.Query("SELECT name FROM cities")
+	rows, err := d.db.QueryContext(ctx, getCityNameList)
+	// rows, err := d.db.Query("SELECT name FROM cities")
 	if err != nil {
 		return nil, err
 	}
@@ -78,21 +79,22 @@ func (d *newsRepo) GetCitiesList(ctx context.Context) ([]*models.CityLight, erro
 	return cities, nil
 }
 
-func (d *newsRepo) GetCitiesLightListWithPredictions(ctx context.Context) ([]*models.CityLight, error) {
+func (d *cityRepo) GetCitiesLightListWithPredictions(ctx context.Context) ([]*models.CityLight, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.GetCitiesLightListWithPredictions")
 	defer span.Finish()
 	var cities []*models.CityLight
 
-	query := `
-		SELECT c.name
-		FROM cities c
-		WHERE EXISTS (
-			SELECT 1
-			FROM predictions p
-			WHERE p.city_id = c.id
-		)
-	`
-	rows, err := d.db.Query(query)
+	// query := `
+	// 	SELECT c.name
+	// 	FROM cities c
+	// 	WHERE EXISTS (
+	// 		SELECT 1
+	// 		FROM predictions p
+	// 		WHERE p.city_id = c.id
+	// 	)
+	// `
+	// rows, err := d.db.Query(query)
+	rows, err := d.db.QueryContext(ctx, getCitiesLightListWithPredictions)
 	if err != nil {
 		return nil, err
 	}
@@ -110,17 +112,12 @@ func (d *newsRepo) GetCitiesLightListWithPredictions(ctx context.Context) ([]*mo
 	return cities, nil
 }
 
-func (d *newsRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.CityDB, error) {
+func (d *cityRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.CityDB, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.GetCitiesListWithPredictions")
 	defer span.Finish()
 	var cities []*models.CityDB
 
-	query := `
-        SELECT c.name, c.country, c.lat, c.lon, p.temp, p.date, p.info
-        FROM cities c
-        JOIN predictions p ON p.city_id = c.id
-    `
-	rows, err := d.db.Query(query)
+	rows, err := d.db.QueryContext(ctx, getCitiesList)
 	if err != nil {
 		return nil, err
 	}
@@ -172,17 +169,10 @@ func (d *newsRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.
 	return cities, nil
 }
 
-func (d *newsRepo) GetCityWithPrediction(ctx context.Context, name string, date time.Time) (*models.CityWithPrediction, error) {
+func (d *cityRepo) GetCityWithPrediction(ctx context.Context, name string, date time.Time) (*models.CityWithPrediction, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.GetCityWithPrediction")
 	defer span.Finish()
-	query := `
-		SELECT c.name, c.country, c.lat, c.lon, p.temp, p.date, p.info
-		FROM cities c
-		JOIN predictions p ON p.city_id = c.id
-		WHERE c.name = $1 AND p.date = $2
-		LIMIT 1
-	`
-	row := d.db.QueryRow(query, name, date)
+	row := d.db.QueryRowContext(ctx, getCityWithPrediction, name, date)
 
 	var city models.CityWithPrediction
 	var prediction models.PredictionDB

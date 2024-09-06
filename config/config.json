@@ -39,5 +39,10 @@
       "mode": "Development",
       "version": "1.0.0",
       "ssl": true
+    },
+    "jaeger": {
+      "host" : "localhost:6831",
+      "service_name" : "REST_API",
+      "log_spans" : false
     }
   }

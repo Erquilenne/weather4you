@@ -1,4 +1,4 @@
-package repsitory
+package repository
 
 const getCityWithPrediction = `
 SELECT c.name, c.country, c.lat, c.lon, p.temp, p.date, p.info

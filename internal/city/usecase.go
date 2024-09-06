@@ -1,4 +1,3 @@
-//go:generate mockgen -source pg_repository.go -destination mock/pg_repository_mock.go -package mock
 package city
 
 import (
@@ -7,7 +6,7 @@ import (
 	"weather4you/internal/models"
 )
 
-type Repository interface {
+type UseCase interface {
 	Create(ctx context.Context, city *models.CityDB) error
 	GetCitiesList(ctx context.Context) ([]*models.CityLight, error)
 	GetCitiesLightListWithPredictions(ctx context.Context) ([]*models.CityLight, error)
