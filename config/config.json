@@ -38,11 +38,19 @@
     "server": {
       "mode": "Development",
       "version": "1.0.0",
-      "ssl": true
+      "ReadTimeout": 5,
+      "WriteTimeout": 5,
+      "Port": ":5000",
+      "PprofPort": ":5555",
+      "debug": false
     },
     "jaeger": {
       "host" : "localhost:6831",
       "service_name" : "REST_API",
       "log_spans" : false
+    },
+    "metrics": {
+      "Url": "0.0.0.0:7070",
+      "ServiceName": "api"
     }
-  }
+}

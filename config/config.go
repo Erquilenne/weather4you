@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"log"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -14,6 +15,7 @@ type Config struct {
 	StartCities     []string       `json:"start_cities"`
 	WeatherApiToken string         `json:"weather_api_token"`
 	Jaeger          Jaeger         `json:"jaeger"`
+	Metrics         Metrics        `json:"metrics"`
 }
 
 type DatabaseConfig struct {
@@ -25,9 +27,13 @@ type DatabaseConfig struct {
 }
 
 type ServerConfig struct {
-	Mode       string `json:"mode"`
-	AppVersion string `json:"app_version"`
-	SSL        bool   `json:"ssl"`
+	Mode         string `json:"mode"`
+	AppVersion   string `json:"app_version"`
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	Port         string
+	PprofPort    string
+	Debug        bool
 }
 
 type Logger struct {
@@ -42,6 +48,12 @@ type Jaeger struct {
 	Host        string
 	ServiceName string
 	LogSpans    bool
+}
+
+// Metrics config
+type Metrics struct {
+	URL         string
+	ServiceName string
 }
 
 func LoadConfig(filename string) (*viper.Viper, error) {

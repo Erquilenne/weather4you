@@ -11,15 +11,15 @@ import (
 	"github.com/opentracing/opentracing-go"
 )
 
-// News UseCase
+// City UseCase
 type cityUC struct {
 	cfg      *config.Config
 	cityRepo city.Repository
 	logger   logger.Logger
 }
 
-// News UseCase constructor
-func NewNewsUseCase(cfg *config.Config, cityRepo city.Repository, logger logger.Logger) city.UseCase {
+// City UseCase constructor
+func NewCityUseCase(cfg *config.Config, cityRepo city.Repository, logger logger.Logger) city.UseCase {
 	return &cityUC{cfg: cfg, cityRepo: cityRepo, logger: logger}
 }
 
