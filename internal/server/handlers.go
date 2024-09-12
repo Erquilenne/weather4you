@@ -32,7 +32,7 @@ func (s *Server) MapHandlers(router *mux.Router) error {
 	)
 
 	// Init repositories
-	cRepo := cityRepository.NewNewsRepository(s.db)
+	cRepo := cityRepository.NewCityRepository(s.db)
 
 	// Init useCases
 	cityUC := cityUseCase.NewCityUseCase(s.cfg, cRepo, s.logger)

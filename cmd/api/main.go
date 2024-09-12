@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"weather4you/config"
-	"weather4you/internal/http-server/handlers"
+	"weather4you/internal/server"
 	"weather4you/pkg/db/postgres"
 	"weather4you/pkg/logger"
 	"weather4you/pkg/utils"
@@ -34,7 +32,7 @@ func main() {
 
 	appLogger := logger.NewApiLogger(cfg)
 	appLogger.InitLogger()
-	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s, SSL: %v", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode, cfg.Server.SSL)
+	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode)
 
 	db, err := postgres.NewPsqlDB(cfg)
 	if err != nil {
@@ -69,15 +67,8 @@ func main() {
 	defer closer.Close()
 	appLogger.Info("Opentracing connected")
 
-	fmt.Println("Done!")
-
-	handler := handlers.NewHandler(db)
-	http.HandleFunc("/list/", handler.GetList)
-	http.HandleFunc("/predictions/", handler.GetPredictionsList)
-	http.HandleFunc("/prediction/", handler.GetCityWithPrediction)
-
-	port := ":8080"
-	fmt.Printf("Server is running on port %s\n", port)
-	log.Fatal(http.ListenAndServe(port, nil))
-
+	s := server.NewServer(cfg, db, appLogger)
+	if err = s.Run(); err != nil {
+		log.Fatal(err)
+	}
 }

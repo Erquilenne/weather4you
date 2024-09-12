@@ -3,10 +3,9 @@ package middleware
 import (
 	"net/http"
 	"time"
+	"weather4you/pkg/utils"
 
 	"github.com/urfave/negroni"
-
-	"github.com/AleksK1NG/api-mc/pkg/utils"
 )
 
 func (mw *MiddlewareManager) RequestLoggerMiddleware() negroni.Handler {
@@ -19,7 +18,7 @@ func (mw *MiddlewareManager) RequestLoggerMiddleware() negroni.Handler {
 		status := rw.Status()
 		size := rw.Size()
 		s := time.Since(start).String()
-		requestID := utils.GetRequestID(r.Context())
+		requestID := utils.GetRequestID(r)
 
 		mw.logger.Infof("RequestID: %s, Method: %s, URI: %s, Status: %v, Size: %v, Time: %s",
 			requestID, r.Method, r.URL, status, size, s,

@@ -1,19 +1,23 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"weather4you/config"
+	"weather4you/internal/city/repository"
 	"weather4you/internal/fillup"
 	"weather4you/pkg/db/postgres"
 	"weather4you/pkg/logger"
 	"weather4you/pkg/utils"
+
+	"github.com/opentracing/opentracing-go"
 )
 
 func main() {
 	// TODO
 
-	log.Println("Starting api server")
+	log.Println("Starting filling up")
 
 	configPath := utils.GetConfigPath(os.Getenv("config"))
 
@@ -29,21 +33,24 @@ func main() {
 
 	appLogger := logger.NewApiLogger(cfg)
 	appLogger.InitLogger()
-	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s, SSL: %v", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode, cfg.Server.SSL)
+	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s, SSL: %v", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode)
 
 	db, err := postgres.NewPsqlDB(cfg)
+	cityRepository := repository.NewCityRepository(db)
 
-	dbcities, err := db.GetCitiesList()
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("fillup.main.GetCitiesList")
+	ctx := context.Background()
+	ctx = opentracing.ContextWithSpan(ctx, span)
+	defer span.Finish()
+	dbcities, err := cityRepository.GetCitiesList(ctx)
 	if err != nil {
 		log.Fatal("Error on getting cities:", err)
 	}
 	if len(dbcities) == 0 {
 		cities := cfg.StartCities
 		for _, city := range cities {
-			err := fillup.FindAndSaveCity(city, db, cfg)
-			if err != nil {
-				log.Fatal("Error on saving city:", err)
-			}
+			fillup.FindAndSaveCity(city, cityRepository, cfg, appLogger)
 		}
 	}
 }

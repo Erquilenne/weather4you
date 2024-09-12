@@ -1,218 +1,157 @@
 package http
 
 import (
+	"context"
+	"encoding/json"
 	"net/http"
+	"time"
+	"weather4you/config"
+	"weather4you/internal/city"
+	"weather4you/internal/models"
+	"weather4you/pkg/logger"
 
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 	"github.com/opentracing/opentracing-go"
-
-	"github.com/AleksK1NG/api-mc/config"
-	"github.com/AleksK1NG/api-mc/internal/models"
-	"github.com/AleksK1NG/api-mc/internal/news"
-	"github.com/AleksK1NG/api-mc/pkg/httpErrors"
-	"github.com/AleksK1NG/api-mc/pkg/logger"
-	"github.com/AleksK1NG/api-mc/pkg/utils"
 )
 
-// News handlers
-type newsHandlers struct {
+// City handlers
+type cityHandlers struct {
 	cfg    *config.Config
-	newsUC news.UseCase
+	cityUC city.UseCase
 	logger logger.Logger
 }
 
-// NewNewsHandlers News handlers constructor
-func NewNewsHandlers(cfg *config.Config, newsUC news.UseCase, logger logger.Logger) news.Handlers {
-	return &newsHandlers{cfg: cfg, newsUC: newsUC, logger: logger}
+// NewCityHandlers City handlers constructor
+func NewCityHandlers(cfg *config.Config, cityUC city.UseCase, logger logger.Logger) city.Handlers {
+	return &cityHandlers{cfg: cfg, cityUC: cityUC, logger: logger}
 }
 
 // Create godoc
-// @Summary Create news
-// @Description Create news handler
-// @Tags News
+// @Summary Get list
+// @Description Get list of cities
+// @Tags Cities
 // @Accept json
 // @Produce json
-// @Success 201 {object} models.News
-// @Router /news/create [post]
-func (h newsHandlers) Create() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "newsHandlers.Create")
-		defer span.Finish()
+// @Success 201 {array} models.CityLight
+// @Router /list/ [get]
+func (h *cityHandlers) GetList(w http.ResponseWriter, r *http.Request) {
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("cityHandlers.GetList")
+	ctx := context.Background()
+	ctx = opentracing.ContextWithSpan(ctx, span)
+	defer span.Finish()
 
-		n := &models.News{}
-		if err := c.Bind(n); err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		createdNews, err := h.newsUC.Create(ctx, n)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		return c.JSON(http.StatusCreated, createdNews)
+	cities, err := h.cityUC.GetCitiesLightListWithPredictions(ctx)
+	if err != nil {
+		http.Error(w, "Error getting cities with predictions", http.StatusInternalServerError)
+		return
 	}
+
+	citiesJSON, err := json.Marshal(cities)
+	if err != nil {
+		http.Error(w, "Error marshaling cities to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	w.Write(citiesJSON)
 }
 
-// Update godoc
-// @Summary Update news
-// @Description Update news handler
-// @Tags News
+// Create godoc
+// @Summary Get predictions list
+// @Description Get list of cities
+// @Tags Cities
 // @Accept json
 // @Produce json
-// @Param id path int true "news_id"
-// @Success 200 {object} models.News
-// @Router /news/{id} [put]
-func (h newsHandlers) Update() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "newsHandlers.Update")
-		defer span.Finish()
+// @Success 201 {object} models.CityShort
+// @Router /predictions/ [get]
+func (h *cityHandlers) GetPredictionsList(w http.ResponseWriter, r *http.Request) {
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("cityHandlers.GetPredictionsList")
+	ctx := context.Background()
+	ctx = opentracing.ContextWithSpan(ctx, span)
+	defer span.Finish()
 
-		newsUUID, err := uuid.Parse(c.Param("news_id"))
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
+	citiesWithPredictions, err := h.cityUC.GetCitiesListWithPredictions(ctx)
 
-		n := &models.News{}
-		if err = c.Bind(n); err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-		n.NewsID = newsUUID
-
-		updatedNews, err := h.newsUC.Update(ctx, n)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		return c.JSON(http.StatusOK, updatedNews)
+	if err != nil {
+		http.Error(w, "Error getting cities with predictions", http.StatusInternalServerError)
+		return
 	}
+
+	var citiesShort []models.CityShort
+
+	for _, city := range citiesWithPredictions {
+		sumTemp := 0
+		futurePredictions := 0
+		for _, prediction := range city.Predictions {
+			if prediction.Date.After(time.Now()) {
+				sumTemp += prediction.Temp
+				futurePredictions++
+			}
+		}
+		if futurePredictions > 0 {
+			averageTemp := sumTemp / futurePredictions
+
+			var futurePredictionDates []time.Time
+			for _, prediction := range city.Predictions {
+				if prediction.Date.After(time.Now()) {
+					futurePredictionDates = append(futurePredictionDates, prediction.Date)
+				}
+			}
+
+			cityShort := models.CityShort{
+				Name:            city.Name,
+				Country:         city.Country,
+				AverageTemp:     averageTemp,
+				PredictionDates: futurePredictionDates,
+			}
+			citiesShort = append(citiesShort, cityShort)
+		}
+	}
+
+	citiesShortJSON, err := json.Marshal(citiesShort)
+	if err != nil {
+		http.Error(w, "Error marshaling cities to JSON", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	w.Write(citiesShortJSON)
 }
 
-// GetByID godoc
-// @Summary Get by id news
-// @Description Get by id news handler
-// @Tags News
+// Create godoc
+// @Summary Get city predictions
+// @Description Get full city info with prediction
+// @Tags Cities
 // @Accept json
 // @Produce json
-// @Param id path int true "news_id"
-// @Success 200 {object} models.News
-// @Router /news/{id} [get]
-func (h newsHandlers) GetByID() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "newsHandlers.GetByID")
-		defer span.Finish()
+// @Success 201 {object} models.CityWithPrediction
+// @Router /prediction/ [get]
+func (h *cityHandlers) GetCityWithPrediction(w http.ResponseWriter, r *http.Request) {
+	tracer := opentracing.GlobalTracer()
+	span := tracer.StartSpan("cityHandlers.GetCityWithPrediction")
+	ctx := context.Background()
+	ctx = opentracing.ContextWithSpan(ctx, span)
+	defer span.Finish()
 
-		newsUUID, err := uuid.Parse(c.Param("news_id"))
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
+	name := r.URL.Query().Get("name")
+	dateStr := r.URL.Query().Get("date")
 
-		newsByID, err := h.newsUC.GetNewsByID(ctx, newsUUID)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		return c.JSON(http.StatusOK, newsByID)
+	date, err := time.Parse("2006-01-02T15:04:05Z", dateStr)
+	if err != nil {
+		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		return
 	}
-}
 
-// Delete godoc
-// @Summary Delete news
-// @Description Delete by id news handler
-// @Tags News
-// @Accept json
-// @Produce json
-// @Param id path int true "news_id"
-// @Success 200 {string} string	"ok"
-// @Router /news/{id} [delete]
-func (h newsHandlers) Delete() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "newsHandlers.Delete")
-		defer span.Finish()
-
-		newsUUID, err := uuid.Parse(c.Param("news_id"))
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		if err = h.newsUC.Delete(ctx, newsUUID); err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		return c.NoContent(http.StatusOK)
+	city, err := h.cityUC.GetCityWithPrediction(ctx, name, date)
+	if err != nil {
+		http.Error(w, "Error getting city with prediction", http.StatusInternalServerError)
+		return
 	}
-}
 
-// GetNews godoc
-// @Summary Get all news
-// @Description Get all news with pagination
-// @Tags News
-// @Accept json
-// @Produce json
-// @Param page query int false "page number" Format(page)
-// @Param size query int false "number of elements per page" Format(size)
-// @Param orderBy query int false "filter name" Format(orderBy)
-// @Success 200 {object} models.NewsList
-// @Router /news [get]
-func (h newsHandlers) GetNews() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "newsHandlers.GetNews")
-		defer span.Finish()
+	w.Header().Set("Content-Type", "application/json")
 
-		pq, err := utils.GetPaginationFromCtx(c)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		newsList, err := h.newsUC.GetNews(ctx, pq)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		return c.JSON(http.StatusOK, newsList)
-	}
-}
-
-// SearchByTitle godoc
-// @Summary Search by title
-// @Description Search news by title
-// @Tags News
-// @Accept json
-// @Produce json
-// @Param page query int false "page number" Format(page)
-// @Param size query int false "number of elements per page" Format(size)
-// @Param orderBy query int false "filter name" Format(orderBy)
-// @Success 200 {object} models.NewsList
-// @Router /news/search [get]
-func (h newsHandlers) SearchByTitle() echo.HandlerFunc {
-	return func(c echo.Context) error {
-		span, ctx := opentracing.StartSpanFromContext(utils.GetRequestCtx(c), "newsHandlers.SearchByTitle")
-		defer span.Finish()
-
-		pq, err := utils.GetPaginationFromCtx(c)
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		newsList, err := h.newsUC.SearchByTitle(ctx, c.QueryParam("title"), pq)
-
-		if err != nil {
-			utils.LogResponseError(c, h.logger, err)
-			return c.JSON(httpErrors.ErrorResponse(err))
-		}
-
-		return c.JSON(http.StatusOK, newsList)
-	}
+	w.Write([]byte(city.Prediction.Info))
 }

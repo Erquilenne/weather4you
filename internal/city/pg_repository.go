@@ -13,4 +13,5 @@ type Repository interface {
 	GetCitiesLightListWithPredictions(ctx context.Context) ([]*models.CityLight, error)
 	GetCitiesListWithPredictions(ctx context.Context) ([]*models.CityDB, error)
 	GetCityWithPrediction(ctx context.Context, name string, date time.Time) (*models.CityWithPrediction, error)
+	Save(city models.CityDB) error
 }

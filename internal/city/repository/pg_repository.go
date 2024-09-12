@@ -14,32 +14,10 @@ type cityRepo struct {
 	db *sql.DB
 }
 
-// News repository constructor
-func NewNewsRepository(db *sql.DB) city.Repository {
+// City repository constructor
+func NewCityRepository(db *sql.DB) city.Repository {
 	return &cityRepo{db: db}
 }
-
-// func (d *newsRepo) MakeMigrations() {
-
-// 	driver, err := postgres.WithInstance(d.db, &postgres.Config{})
-// 	if err != nil {
-// 		log.Fatal("Error creating database driver instance:", err)
-// 	}
-
-// 	m, err := migrate.NewWithDatabaseInstance(
-// 		"file://./migrations",
-// 		"postgres", driver)
-// 	if err != nil {
-// 		log.Fatal("Error creating migration instance:", err)
-// 	}
-
-// 	err = m.Up()
-// 	if err != nil && err != migrate.ErrNoChange {
-// 		log.Fatal("Error applying migrations:", err)
-// 	}
-
-// 	log.Println("Migrations up to date")
-// }
 
 func (d *cityRepo) Create(ctx context.Context, city *models.CityDB) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.Create")
@@ -83,17 +61,6 @@ func (d *cityRepo) GetCitiesLightListWithPredictions(ctx context.Context) ([]*mo
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.GetCitiesLightListWithPredictions")
 	defer span.Finish()
 	var cities []*models.CityLight
-
-	// query := `
-	// 	SELECT c.name
-	// 	FROM cities c
-	// 	WHERE EXISTS (
-	// 		SELECT 1
-	// 		FROM predictions p
-	// 		WHERE p.city_id = c.id
-	// 	)
-	// `
-	// rows, err := d.db.Query(query)
 	rows, err := d.db.QueryContext(ctx, getCitiesLightListWithPredictions)
 	if err != nil {
 		return nil, err
@@ -188,4 +155,16 @@ func (d *cityRepo) GetCityWithPrediction(ctx context.Context, name string, date 
 	city.Prediction = prediction
 
 	return &city, nil
+}
+
+func (d *cityRepo) Save(city models.CityDB) error {
+	var id int64
+	d.db.QueryRow(saveCity, city.Name, city.Country, city.Lat, city.Lon).Scan(&id)
+	for _, prediction := range city.Predictions {
+		_, err := d.db.Exec(savePrediction, id, prediction.Temp, prediction.Date, prediction.Info)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
