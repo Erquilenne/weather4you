@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"log"
 	"time"
 
@@ -58,14 +57,23 @@ type Metrics struct {
 
 func LoadConfig(filename string) (*viper.Viper, error) {
 	v := viper.New()
-	v.SetConfigFile(".")
-	v.AutomaticEnv()
+	v.SetConfigName(filename) // Укажите имя файла конфигурации без расширения
+	v.SetConfigType("json")   // Укажите тип файла конфигурации
+	v.AddConfigPath(".")      // Укажите путь к конфигурационному файлу
+
+	// Можно указать дополнительные пути
+	v.AddConfigPath("./config")
+
+	v.AutomaticEnv() // Поддержка переменных окружения
+
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
-			return nil, errors.New("config file not found")
+			return nil, err
+			// return nil, errors.New("config file not found")
 		}
 		return nil, err
 	}
+
 	return v, nil
 }
 

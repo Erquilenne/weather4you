@@ -5,6 +5,7 @@ import (
 	"os"
 	"weather4you/config"
 	"weather4you/internal/server"
+	"weather4you/internal/updater"
 	"weather4you/pkg/db/postgres"
 	"weather4you/pkg/logger"
 	"weather4you/pkg/utils"
@@ -66,6 +67,10 @@ func main() {
 	opentracing.SetGlobalTracer(tracer)
 	defer closer.Close()
 	appLogger.Info("Opentracing connected")
+	updater := updater.NewUpdater(cfg, db, appLogger)
+	appLogger.Info("Upadting data")
+	updater.Update()
+	appLogger.Info("Data up do date")
 
 	s := server.NewServer(cfg, db, appLogger)
 	if err = s.Run(); err != nil {

@@ -37,7 +37,7 @@
     },
     "server": {
       "mode": "Development",
-      "version": "1.0.0",
+      "app_version": "1.0.0",
       "ReadTimeout": 5,
       "WriteTimeout": 5,
       "Port": ":5000",

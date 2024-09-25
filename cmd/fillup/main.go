@@ -11,12 +11,11 @@ import (
 	"weather4you/pkg/logger"
 	"weather4you/pkg/utils"
 
+	_ "github.com/lib/pq"
 	"github.com/opentracing/opentracing-go"
 )
 
 func main() {
-	// TODO
-
 	log.Println("Starting filling up")
 
 	configPath := utils.GetConfigPath(os.Getenv("config"))
@@ -33,9 +32,12 @@ func main() {
 
 	appLogger := logger.NewApiLogger(cfg)
 	appLogger.InitLogger()
-	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s, SSL: %v", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode)
+	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode)
 
 	db, err := postgres.NewPsqlDB(cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %s", err)
+	}
 	cityRepository := repository.NewCityRepository(db)
 
 	tracer := opentracing.GlobalTracer()

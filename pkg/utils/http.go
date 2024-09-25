@@ -8,8 +8,5 @@ func GetRequestID(r *http.Request) string {
 }
 
 func GetConfigPath(configPath string) string {
-	if configPath == "docker" {
-		return "./config/config-docker"
-	}
-	return "./config/config-local"
+	return "config"
 }

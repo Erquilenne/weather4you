@@ -23,9 +23,9 @@ func (d *cityRepo) Create(ctx context.Context, city *models.CityDB) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.Create")
 	defer span.Finish()
 	var id int64
-	d.db.QueryRow("INSERT INTO cities (name, country, lat, lon) VALUES ($1, $2, $3, $4) RETURNING id", city.Name, city.Country, city.Lat, city.Lon).Scan(&id)
+	d.db.QueryRowContext(ctx, saveCity, city.Name, city.Country, city.Lat, city.Lon).Scan(&id)
 	for _, prediction := range city.Predictions {
-		_, err := d.db.Exec("INSERT INTO predictions (city_id, temp, date, info) VALUES ($1, $2, $3, $4)", id, prediction.Temp, prediction.Date, prediction.Info)
+		_, err := d.db.Exec(savePrediction, id, prediction.Temp, prediction.Date, prediction.Info)
 		if err != nil {
 			return err
 		}
