@@ -2,8 +2,8 @@
     "database": {
       "host": "localhost",
       "port": "5432",
-      "user": "admin",
-      "password": "admin",
+      "user": "postgres",
+      "password": "postgres",
       "dbname": "weather4you"
     },
     "weather_api_token": "311bb71106bff650f024a7b07b293d43",
@@ -38,10 +38,10 @@
     "server": {
       "mode": "Development",
       "app_version": "1.0.0",
-      "ReadTimeout": 5,
-      "WriteTimeout": 5,
-      "Port": ":5000",
-      "PprofPort": ":5555",
+      "read_timeout": 5,
+      "write_timeout": 5,
+      "port": ":5000",
+      "pprof_port": ":5555",
       "debug": false
     },
     "jaeger": {

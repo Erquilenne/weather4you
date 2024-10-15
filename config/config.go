@@ -8,63 +8,61 @@ import (
 )
 
 type Config struct {
-	Database        DatabaseConfig `json:"database"`
-	Logger          Logger         `json:"logger"`
-	Server          ServerConfig   `json:"server"`
-	StartCities     []string       `json:"start_cities"`
-	WeatherApiToken string         `json:"weather_api_token"`
-	Jaeger          Jaeger         `json:"jaeger"`
-	Metrics         Metrics        `json:"metrics"`
+	Database        DatabaseConfig `mapstructure:"database"`
+	Logger          Logger         `mapstructure:"logger"`
+	Server          ServerConfig   `mapstructure:"server"`
+	StartCities     []string       `mapstructure:"start_cities"`
+	WeatherApiToken string         `mapstructure:"weather_api_token"`
+	Jaeger          Jaeger         `mapstructure:"jaeger"`
+	Metrics         Metrics        `mapstructure:"metrics"`
 }
 
 type DatabaseConfig struct {
-	Host     string `json:"host"`
-	Port     string `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
-	DBName   string `json:"dbname"`
+	Host     string `mapstructure:"host"`
+	Port     string `mapstructure:"port"`
+	User     string `mapstructure:"user"`
+	Password string `mapstructure:"password"`
+	DBName   string `mapstructure:"dbname"`
 }
 
 type ServerConfig struct {
-	Mode         string `json:"mode"`
-	AppVersion   string `json:"app_version"`
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	Port         string
-	PprofPort    string
-	Debug        bool
+	Mode         string        `mapstructure:"mode"`
+	AppVersion   string        `mapstructure:"app_version"`
+	ReadTimeout  time.Duration `mapstructure:"read_timeout"`
+	WriteTimeout time.Duration `mapstructure:"write_timeout"`
+	Port         string        `mapstructure:"port"`
+	PprofPort    string        `mapstructure:"pprof_port"`
+	Debug        bool          `mapstructure:"debug"`
 }
 
 type Logger struct {
-	Development       bool   `json:"development"`
-	DisableCaller     bool   `json:"disable_caller"`
-	DisableStacktrace bool   `json:"disable_stacktrace"`
-	Encoding          string `json:"encoding"`
-	Level             string `json:"level"`
+	Development       bool   `mapstructure:"development"`
+	DisableCaller     bool   `mapstructure:"disable_caller"`
+	DisableStacktrace bool   `mapstructure:"disable_stacktrace"`
+	Encoding          string `mapstructure:"encoding"`
+	Level             string `mapstructure:"level"`
 }
 
 type Jaeger struct {
-	Host        string
-	ServiceName string
-	LogSpans    bool
+	Host        string `mapstructure:"host"`
+	ServiceName string `mapstructure:"service_name"`
+	LogSpans    bool   `mapstructure:"log_spans"`
 }
 
-// Metrics config
 type Metrics struct {
-	URL         string
-	ServiceName string
+	URL         string `mapstructure:"url"`
+	ServiceName string `mapstructure:"service_name"`
 }
 
 func LoadConfig(filename string) (*viper.Viper, error) {
 	v := viper.New()
-	v.SetConfigName(filename) // Укажите имя файла конфигурации без расширения
-	v.SetConfigType("json")   // Укажите тип файла конфигурации
-	v.AddConfigPath(".")      // Укажите путь к конфигурационному файлу
+	v.SetConfigName(filename)
+	v.SetConfigType("json")
+	v.AddConfigPath(".")
 
-	// Можно указать дополнительные пути
 	v.AddConfigPath("./config")
 
-	v.AutomaticEnv() // Поддержка переменных окружения
+	v.AutomaticEnv()
 
 	if err := v.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {

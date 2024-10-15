@@ -17,19 +17,24 @@ type Finder interface {
 }
 
 type CityFinder struct {
+	client *http.Client
 	cfg    *config.Config
 	logger logger.Logger
 }
 
 func NewCityFinder(cfg *config.Config, logger logger.Logger) *CityFinder {
-	return &CityFinder{cfg: cfg, logger: logger}
+	client := &http.Client{
+		Timeout: 5 * time.Second, // Устанавливаем таймаут 5 секунд
+	}
+	return &CityFinder{cfg: cfg, logger: logger, client: client}
 }
 
 func (f *CityFinder) FindCity(cityName string) models.CityDB {
 
-	url := fmt.Sprintf("http://api.openweathermap.org/geo/1.0/direct?q=%s&limit=1&appid=%s", cityName, f.cfg.WeatherApiToken)
+	// url := fmt.Sprintf("http://api.openweathermap.org/geo/1.0/direct?q=%s&limit=1&appid=%s", cityName, f.cfg.WeatherApiToken)
+	url := fmt.Sprintf("http://localhost:8082/geo/1.0/direct?q=%s&limit=1&appid=%s", cityName, f.cfg.WeatherApiToken)
 
-	resp, err := http.Get(url)
+	resp, err := f.client.Get(url)
 	if err != nil {
 		f.logger.Fatalf("FindCity request error: %s", err)
 	}
@@ -61,9 +66,10 @@ func (f *CityFinder) FindCity(cityName string) models.CityDB {
 func (f *CityFinder) FindPredictions(lat float64, lon float64) []models.PredictionDB {
 
 	// Find predictions with celsius units (units=metric)
-	url := fmt.Sprintf("http://api.openweathermap.org/data/2.5/forecast?lat=%f&lon=%f&units=metric&appid=%s", lat, lon, f.cfg.WeatherApiToken)
+	// url := fmt.Sprintf("http://api.openweathermap.org/data/2.5/forecast?lat=%f&lon=%f&units=metric&appid=%s", lat, lon, f.cfg.WeatherApiToken)
+	url := fmt.Sprintf("http://localhost:8082/data/2.5/forecast?lat=%f&lon=%f&units=metric&appid=%s", lat, lon, f.cfg.WeatherApiToken)
 
-	resp, err := http.Get(url)
+	resp, err := f.client.Get(url)
 	if err != nil {
 		f.logger.Fatalf("FindPredictions request error: %s", err)
 	}
@@ -71,6 +77,10 @@ func (f *CityFinder) FindPredictions(lat float64, lon float64) []models.Predicti
 
 	var response response.OpenWeatherMapResponse
 	err = json.NewDecoder(resp.Body).Decode(&response)
+	if len(response.List) == 0 {
+		f.logger.Warnf("FindPredictions: city predictions not found: %f, %f", lat, lon)
+		return nil
+	}
 	if err != nil {
 		f.logger.Fatalf("FindPredictions json decoder error: %s", err)
 	}
@@ -81,9 +91,12 @@ func (f *CityFinder) FindPredictions(lat float64, lon float64) []models.Predicti
 		if err != nil {
 			f.logger.Fatalf("FindPredictions json marshal error: %s", err)
 		}
+		if err != nil {
+			f.logger.Fatalf("FindPredictions time parse error: %s", err)
+		}
 		predictions[i] = models.PredictionDB{
 			Temp: int(item.Main.Temp),
-			Date: time.Unix(item.Dt, 0),
+			Date: item.Dt,
 			Info: string(itemJSON),
 		}
 	}

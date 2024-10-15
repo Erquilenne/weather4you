@@ -85,7 +85,8 @@ func (h *cityHandlers) GetPredictionsList(w http.ResponseWriter, r *http.Request
 		sumTemp := 0
 		futurePredictions := 0
 		for _, prediction := range city.Predictions {
-			if prediction.Date.After(time.Now()) {
+			predictionDate := time.Unix(prediction.Date, 0)
+			if predictionDate.After(time.Now()) {
 				sumTemp += prediction.Temp
 				futurePredictions++
 			}
@@ -95,8 +96,9 @@ func (h *cityHandlers) GetPredictionsList(w http.ResponseWriter, r *http.Request
 
 			var futurePredictionDates []time.Time
 			for _, prediction := range city.Predictions {
-				if prediction.Date.After(time.Now()) {
-					futurePredictionDates = append(futurePredictionDates, prediction.Date)
+				predictionDate := time.Unix(prediction.Date, 0)
+				if predictionDate.After(time.Now()) {
+					futurePredictionDates = append(futurePredictionDates, predictionDate)
 				}
 			}
 

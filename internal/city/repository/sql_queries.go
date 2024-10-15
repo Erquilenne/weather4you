@@ -29,6 +29,15 @@ SELECT name
 FROM cities
 `
 
-const saveCity string = `INSERT INTO cities (name, country, lat, lon) VALUES ($1, $2, $3, $4)`
+const saveCity = `
+INSERT INTO cities (name, country, lat, lon)
+VALUES ($1, $2, $3, $4)
+RETURNING id
+`
 
-const savePrediction string = `INSERT INTO predictions (city_id, date, temp, info) VALUES ($1, $2, $3, $4)`
+const savePrediction = `
+INSERT INTO predictions (city_id, date, temp, info)
+VALUES ($1, $2, $3, $4)
+`
+
+const cityExists = `SELECT EXISTS (SELECT 1 FROM cities WHERE name = $1)`

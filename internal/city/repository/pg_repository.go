@@ -47,7 +47,7 @@ func (d *cityRepo) GetCitiesList(ctx context.Context) ([]*models.CityLight, erro
 
 	for rows.Next() {
 		var city models.CityLight
-		err := rows.Scan(city.Name)
+		err := rows.Scan(&city.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -96,7 +96,7 @@ func (d *cityRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.
 		var cityName, country string
 		var lat, lon float64
 		var temp int
-		var date time.Time
+		var date int64
 		var info []byte
 
 		err := rows.Scan(&cityName, &country, &lat, &lon, &temp, &date, &info)
@@ -159,12 +159,19 @@ func (d *cityRepo) GetCityWithPrediction(ctx context.Context, name string, date 
 
 func (d *cityRepo) Save(city models.CityDB) error {
 	var id int64
+	// prettyPrint(city.Name, city.Country, city.Lat, city.Lon)
 	d.db.QueryRow(saveCity, city.Name, city.Country, city.Lat, city.Lon).Scan(&id)
 	for _, prediction := range city.Predictions {
-		_, err := d.db.Exec(savePrediction, id, prediction.Temp, prediction.Date, prediction.Info)
+		_, err := d.db.Exec(savePrediction, id, time.Unix(prediction.Date, 0), prediction.Temp, prediction.Info)
 		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (d *cityRepo) Exists(cityName string) (bool, error) {
+	var exists bool
+	err := d.db.QueryRow(cityExists, cityName).Scan(&exists)
+	return exists, err
 }

@@ -13,9 +13,9 @@ type CityDB struct {
 
 // Predictions base model
 type PredictionDB struct {
-	Temp int       `json:"temp"`
-	Date time.Time `json:"date"`
-	Info string    `json:"info"`
+	Temp int    `json:"temp"`
+	Date int64  `json:"date"`
+	Info string `json:"info"`
 }
 
 // Model for cities list response

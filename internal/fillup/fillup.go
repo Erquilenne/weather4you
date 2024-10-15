@@ -9,9 +9,18 @@ import (
 
 type Saver interface {
 	Save(city models.CityDB) error
+	Exists(cityName string) (bool, error)
 }
 
 func FindAndSaveCity(cityName string, d Saver, cfg *config.Config, logger logger.Logger) {
+	exists, err := d.Exists(cityName)
+	if err != nil {
+		logger.Fatalf("Exists error: %s", err)
+	}
+	if exists {
+		logger.Infof("City already exists: %s", cityName)
+		return
+	}
 	finder := weatherapi.NewCityFinder(cfg, logger)
 	city := findCity(cityName, finder)
 	city.Predictions = FindPredictions(city.Lat, city.Lon, finder)
@@ -20,7 +29,7 @@ func FindAndSaveCity(cityName string, d Saver, cfg *config.Config, logger logger
 		logger.Warnf("Predictions not found in city: %s", city.Name)
 	}
 
-	err := d.Save(city)
+	err = d.Save(city)
 	if err != nil {
 		logger.Fatalf("SaveCity error: %s", err)
 	}

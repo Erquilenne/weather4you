@@ -32,7 +32,7 @@ func main() {
 
 	appLogger := logger.NewApiLogger(cfg)
 	appLogger.InitLogger()
-	appLogger.Infof("AppVersion: %s", "LogLevel: %s, Mode: %s", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode)
+	appLogger.Infof("AppVersion: %s, LogLevel: %s, Mode: %s", cfg.Server.AppVersion, cfg.Logger.Level, cfg.Server.Mode)
 
 	db, err := postgres.NewPsqlDB(cfg)
 	if err != nil {
@@ -49,7 +49,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error on getting cities:", err)
 	}
-	if len(dbcities) == 0 {
+	if len(dbcities) <= len(cfg.StartCities) {
 		cities := cfg.StartCities
 		for _, city := range cities {
 			fillup.FindAndSaveCity(city, cityRepository, cfg, appLogger)

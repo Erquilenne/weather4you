@@ -14,4 +14,5 @@ type Repository interface {
 	GetCitiesListWithPredictions(ctx context.Context) ([]*models.CityDB, error)
 	GetCityWithPrediction(ctx context.Context, name string, date time.Time) (*models.CityWithPrediction, error)
 	Save(city models.CityDB) error
+	Exists(cityName string) (bool, error)
 }
