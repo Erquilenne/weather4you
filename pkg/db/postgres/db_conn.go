@@ -1,10 +1,11 @@
 package postgres
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 	"weather4you/config"
+
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 )
 
 // Return new Postgresql db instance
-func NewPsqlDB(c *config.Config) (*sql.DB, error) {
+func NewPsqlDB(c *config.Config) (*sqlx.DB, error) {
 	dataSourceName := fmt.Sprintf("host=%s port=%s user=%s dbname=%s sslmode=disable password=%s",
 		c.Database.Host,
 		c.Database.Port,
@@ -24,7 +25,7 @@ func NewPsqlDB(c *config.Config) (*sql.DB, error) {
 		c.Database.Password,
 	)
 
-	db, err := sql.Open("postgres", dataSourceName)
+	db, err := sqlx.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, err
 	}

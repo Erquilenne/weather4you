@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"weather4you/pkg/logger"
 
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -23,12 +23,12 @@ const (
 // Server struct
 type Server struct {
 	cfg    *config.Config
-	db     *sql.DB
+	db     *sqlx.DB
 	logger logger.Logger
 }
 
 // NewServer New Server constructor
-func NewServer(cfg *config.Config, db *sql.DB, logger logger.Logger) *Server {
+func NewServer(cfg *config.Config, db *sqlx.DB, logger logger.Logger) *Server {
 	return &Server{cfg: cfg, db: db, logger: logger}
 }
 

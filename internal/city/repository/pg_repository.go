@@ -3,19 +3,21 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 	"weather4you/internal/city"
 	"weather4you/internal/models"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/opentracing/opentracing-go"
 )
 
 type cityRepo struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 // City repository constructor
-func NewCityRepository(db *sql.DB) city.Repository {
+func NewCityRepository(db *sqlx.DB) city.Repository {
 	return &cityRepo{db: db}
 }
 
@@ -39,7 +41,6 @@ func (d *cityRepo) GetCitiesList(ctx context.Context) ([]*models.CityLight, erro
 	var cities []*models.CityLight
 
 	rows, err := d.db.QueryContext(ctx, getCityNameList)
-	// rows, err := d.db.Query("SELECT name FROM cities")
 	if err != nil {
 		return nil, err
 	}
@@ -84,54 +85,69 @@ func (d *cityRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.
 	defer span.Finish()
 	var cities []*models.CityDB
 
-	rows, err := d.db.QueryContext(ctx, getCitiesList)
+	// err := d.db.SelectContext(ctx, &cities, GetCitiesListWithPredictions)
+	rows, err := d.db.QueryContext(ctx, GetCitiesListWithPredictions)
 	if err != nil {
 		return nil, err
 	}
+
+	// for cityDB := range citiesDB {
+	// 	prediction := []models.PredictionDB{}
+	// 	prediction := json.Unmarshal(cityDB.Predictions, []prediction)
+	// 	city := models.City{
+	// 		Name:    cityDB.Name,
+	// 		Country: cityDB.Country,
+	// 		Lat:     cityDB.Lat,
+	// 		Lon:     cityDB.Lon,
+	// 	}
+	// }
+	fmt.Println(cities)
 	defer rows.Close()
 
-	cityMap := make(map[string]models.CityDB) // Map to store cities by name
+	// cityMap := make(map[string]models.CityDB) // Map to store cities by name
 
 	for rows.Next() {
-		var cityName, country string
-		var lat, lon float64
-		var temp int
-		var date int64
-		var info []byte
-
-		err := rows.Scan(&cityName, &country, &lat, &lon, &temp, &date, &info)
+		// err := rows.Scan(&cityName, &country, &lat, &lon, &temp, &date, &info)
+		var city models.CityDB
+		var predictions []models.PredictionDB
 		if err != nil {
 			return nil, err
 		}
 
-		if city, ok := cityMap[cityName]; ok {
-			prediction := models.PredictionDB{
-				Temp: temp,
-				Date: date,
-				Info: string(info),
-			}
-			city.Predictions = append(city.Predictions, prediction)
-		} else {
-			city := models.CityDB{
-				Name:    cityName,
-				Country: country,
-				Lat:     lat,
-				Lon:     lon,
-				Predictions: []models.PredictionDB{
-					{
-						Temp: temp,
-						Date: date,
-						Info: string(info),
-					},
-				},
-			}
-			cityMap[cityName] = city
+		err := rows.Scan(&city.Name, &city.Country, &city.Lat, &city.Lon, &city.Predictions)
+		if err != nil {
+			fmt.Println("Scan error: ", err)
+			return nil, err
 		}
+		cities = append(cities, &city)
+		// city.Predictions = append(city.Predictions, predictions...)
+		fmt.Println(predictions, "PREDISCTIONSSS")
 	}
 
-	for _, city := range cityMap {
-		cities = append(cities, &city)
-	}
+	// if city, ok := cityMap[city.Name]; ok {
+	// 	city.Predictions = append(city.Predictions, predictions)
+	// } else {
+	// 	city := models.CityDB{
+	// 		Name:    cityName,
+	// 		Country: country,
+	// 		Lat:     lat,
+	// 		Lon:     lon,
+	// 		Predictions: []models.PredictionDB{
+	// 			{
+	// 				Temp: temp,
+	// 				Date: date,
+	// 				Info: string(info),
+	// 			},
+	// 		},
+	// 	}
+	// 	cityMap[cityName] = city
+	// }
+	// 	cityMap[city.Name] = city
+	// }
+
+	// for _, city := range cityMap {
+	// 	cities = append(cities, &city)
+	// }
 
 	return cities, nil
 }

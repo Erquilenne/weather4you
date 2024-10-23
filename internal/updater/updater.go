@@ -2,12 +2,13 @@ package updater
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"weather4you/config"
 	"weather4you/internal/city"
 	"weather4you/internal/city/repository"
 	"weather4you/pkg/logger"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type Updater struct {
@@ -16,7 +17,7 @@ type Updater struct {
 	logger     logger.Logger
 }
 
-func NewUpdater(cfg *config.Config, db *sql.DB, logger logger.Logger) *Updater {
+func NewUpdater(cfg *config.Config, db *sqlx.DB, logger logger.Logger) *Updater {
 	repository := repository.NewCityRepository(db)
 	return &Updater{cfg: cfg, repository: repository, logger: logger}
 }

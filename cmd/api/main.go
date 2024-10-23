@@ -10,6 +10,7 @@ import (
 	"weather4you/pkg/logger"
 	"weather4you/pkg/utils"
 
+	_ "github.com/lib/pq"
 	"github.com/opentracing/opentracing-go"
 	"github.com/uber/jaeger-client-go"
 	jaegercfg "github.com/uber/jaeger-client-go/config"

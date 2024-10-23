@@ -1,24 +1,5 @@
 version: '3'
 services:
-  web:
-    container_name: api
-    build:
-      context: ./
-      dockerfile: docker/Dockerfile
-    ports:
-      - "5000:5000"
-      - "5555:5555"
-      - "7070:7070"
-    environment:
-      - PORT=5000
-    depends_on:
-      - postgres
-    restart: always
-    volumes:
-      - ./:/app
-    networks:
-      - web_api
-
   postgres:
     image: postgres:latest
     environment:

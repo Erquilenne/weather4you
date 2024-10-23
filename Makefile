@@ -26,16 +26,40 @@ run:
 fillup:
 	go run cmd/fillup/main.go	
 
+build:
+	go build ./cmd/api/main.go
+
+test:
+	go test -cover ./...
+
 
 # ==============================================================================
 # Docker compose
 
+docker_delve:
+	echo "Starting docker debug environment"
+	sudo docker compose -f docker-compose.delve.yml up --build
+
 docker_up:
 	sudo docker compose up -d
 
+local:
+	echo "Starting local environment"
+	sudo docker compose -f docker-compose.local.yml up --build
 
 docker_down:
 	sudo docker compose down
 
 docker_build:
 	sudo docker compose build
+
+# ==============================================================================
+# Tools commands
+
+run-linter:
+	echo "Starting linters"
+	golangci-lint run ./...
+
+swaggo:
+	echo "Starting swagger generating"
+	swag init -g **/**/*.go
