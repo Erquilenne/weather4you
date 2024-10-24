@@ -2,7 +2,6 @@ package updater
 
 import (
 	"context"
-	"fmt"
 	"weather4you/config"
 	"weather4you/internal/city"
 	"weather4you/internal/city/repository"
@@ -32,6 +31,7 @@ func (u *Updater) Update() {
 		return
 	}
 	for _, city := range cityList {
-		fmt.Println("in updater cite pred - ", city.Predictions[1].Temp)
+		u.logger.Infof("Updating city: %s", city.Name)
+		//TODO
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"time"
 	"weather4you/internal/city"
 	"weather4you/internal/models"
@@ -97,7 +96,6 @@ func (d *cityRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.
 		var predictionsJSON []byte
 
 		err := rows.Scan(&city.Name, &city.Country, &city.Lat, &city.Lon, &predictionsJSON)
-		fmt.Println("predictionsJSON - ", predictionsJSON)
 		if err != nil {
 			return nil, err
 		}
