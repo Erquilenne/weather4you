@@ -32,6 +32,6 @@ func (u *Updater) Update() {
 		return
 	}
 	for _, city := range cityList {
-		fmt.Println(city)
+		fmt.Println("in updater cite pred - ", city.Predictions[1].Temp)
 	}
 }

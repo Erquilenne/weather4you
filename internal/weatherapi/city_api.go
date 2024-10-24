@@ -97,7 +97,7 @@ func (f *CityFinder) FindPredictions(lat float64, lon float64) []models.Predicti
 		predictions[i] = models.PredictionDB{
 			Temp: int(item.Main.Temp),
 			Date: item.Dt,
-			Info: string(itemJSON),
+			Info: itemJSON,
 		}
 	}
 

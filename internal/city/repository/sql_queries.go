@@ -20,7 +20,7 @@ SELECT
   c.country, 
   c.lat, 
   c.lon, 
-  ARRAY_AGG(ROW(p.temp, p.date, p.info)) AS predictions
+  JSON_AGG(json_build_object('temp', p.temp, 'date', ROUND(EXTRACT(EPOCH FROM p.date)), 'info', p.info)) AS predictions
 FROM 
   cities c
 JOIN 
@@ -28,6 +28,21 @@ JOIN
 GROUP BY 
   c.name, c.country, c.lat, c.lon
 `
+
+// const GetCitiesListWithPredictions string = `
+// SELECT
+//   c.name,
+//   c.country,
+//   c.lat,
+//   c.lon,
+//   JSON_AGG(row_to_json( ROW(p.temp, p.date, p.info), ARRAY('temp', 'date', 'info'))) AS predictions
+// FROM
+//   cities c
+// JOIN
+//   predictions p ON p.city_id = c.id
+// GROUP BY
+//   c.name, c.country, c.lat, c.lon
+// `
 
 const getCitiesLightListWithPredictions string = `
 SELECT c.name

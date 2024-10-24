@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"time"
 	"weather4you/internal/city"
@@ -85,69 +86,30 @@ func (d *cityRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.
 	defer span.Finish()
 	var cities []*models.CityDB
 
-	// err := d.db.SelectContext(ctx, &cities, GetCitiesListWithPredictions)
 	rows, err := d.db.QueryContext(ctx, GetCitiesListWithPredictions)
 	if err != nil {
 		return nil, err
 	}
-
-	// for cityDB := range citiesDB {
-	// 	prediction := []models.PredictionDB{}
-	// 	prediction := json.Unmarshal(cityDB.Predictions, []prediction)
-	// 	city := models.City{
-	// 		Name:    cityDB.Name,
-	// 		Country: cityDB.Country,
-	// 		Lat:     cityDB.Lat,
-	// 		Lon:     cityDB.Lon,
-	// 	}
-	// }
-	fmt.Println(cities)
 	defer rows.Close()
 
-	// cityMap := make(map[string]models.CityDB) // Map to store cities by name
-
 	for rows.Next() {
-		// err := rows.Scan(&cityName, &country, &lat, &lon, &temp, &date, &info)
 		var city models.CityDB
-		var predictions []models.PredictionDB
+		var predictionsJSON []byte
+
+		err := rows.Scan(&city.Name, &city.Country, &city.Lat, &city.Lon, &predictionsJSON)
+		fmt.Println("predictionsJSON - ", predictionsJSON)
 		if err != nil {
 			return nil, err
 		}
 
-		err := rows.Scan(&city.Name, &city.Country, &city.Lat, &city.Lon, &city.Predictions)
+		// Десериализация JSON в []models.PredictionDB
+		err = json.Unmarshal(predictionsJSON, &city.Predictions)
 		if err != nil {
-			fmt.Println("Scan error: ", err)
 			return nil, err
 		}
+
 		cities = append(cities, &city)
-		// city.Predictions = append(city.Predictions, predictions...)
-		fmt.Println(predictions, "PREDISCTIONSSS")
 	}
-
-	// if city, ok := cityMap[city.Name]; ok {
-	// 	city.Predictions = append(city.Predictions, predictions)
-	// } else {
-	// 	city := models.CityDB{
-	// 		Name:    cityName,
-	// 		Country: country,
-	// 		Lat:     lat,
-	// 		Lon:     lon,
-	// 		Predictions: []models.PredictionDB{
-	// 			{
-	// 				Temp: temp,
-	// 				Date: date,
-	// 				Info: string(info),
-	// 			},
-	// 		},
-	// 	}
-	// 	cityMap[cityName] = city
-	// }
-	// 	cityMap[city.Name] = city
-	// }
-
-	// for _, city := range cityMap {
-	// 	cities = append(cities, &city)
-	// }
 
 	return cities, nil
 }
