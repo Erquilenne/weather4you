@@ -45,7 +45,7 @@ docker_up:
 
 local:
 	echo "Starting local environment"
-	sudo docker compose -f docker-compose.local.yml up --build
+	sudo docker compose -f docker-compose.yml up --build
 
 docker_down:
 	sudo docker compose down
