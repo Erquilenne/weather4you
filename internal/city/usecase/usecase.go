@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"strconv"
 	"time"
 	"weather4you/config"
 	city "weather4you/internal/city"
@@ -47,8 +48,19 @@ func (u *cityUC) GetCitiesListWithPredictions(ctx context.Context) ([]*models.Ci
 	return u.cityRepo.GetCitiesListWithPredictions(ctx)
 }
 
-func (u *cityUC) GetCityWithPrediction(ctx context.Context, name string, date time.Time) (*models.CityWithPrediction, error) {
+func (u *cityUC) GetCityWithPrediction(ctx context.Context, name string, timestamp string) (*models.CityWithPrediction, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityUC.GetCityWithPrediction")
 	defer span.Finish()
-	return u.cityRepo.GetCityWithPrediction(ctx, name, date)
+
+	unixTimestamp, err := strconv.ParseInt(timestamp, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	// Преобразуем Unix timestamp в объект time.Time
+	date := time.Unix(unixTimestamp, 0)
+
+	// Преобразуем объект time.Time в строку формата 2006-01-02T15:04:05Z
+	formattedDate := date.Format("2006-01-02 15:04:05")
+	return u.cityRepo.GetCityWithPrediction(ctx, name, formattedDate)
 }

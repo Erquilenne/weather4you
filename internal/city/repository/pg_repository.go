@@ -112,7 +112,7 @@ func (d *cityRepo) GetCitiesListWithPredictions(ctx context.Context) ([]*models.
 	return cities, nil
 }
 
-func (d *cityRepo) GetCityWithPrediction(ctx context.Context, name string, date time.Time) (*models.CityWithPrediction, error) {
+func (d *cityRepo) GetCityWithPrediction(ctx context.Context, name string, date string) (*models.CityWithPrediction, error) {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityRepo.GetCityWithPrediction")
 	defer span.Finish()
 	row := d.db.QueryRowContext(ctx, getCityWithPrediction, name, date)

@@ -1,7 +1,7 @@
 package repository
 
 const getCityWithPrediction string = `
-SELECT c.name, c.country, c.lat, c.lon, p.temp, p.date, p.info
+SELECT c.name, c.country, c.lat, c.lon, p.temp, ROUND(EXTRACT(EPOCH FROM p.date)) as date, p.info
 FROM cities c
 JOIN predictions p ON p.city_id = c.id
 WHERE c.name = $1 AND p.date = $2

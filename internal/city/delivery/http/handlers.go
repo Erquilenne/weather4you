@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 	"weather4you/config"
@@ -130,7 +131,7 @@ func (h *cityHandlers) GetPredictionsList(w http.ResponseWriter, r *http.Request
 // @Accept json
 // @Produce json
 // @Success 201 {object} models.CityWithPrediction
-// @Router /prediction/ [get]
+// @Router /city/ [get]
 func (h *cityHandlers) GetCityWithPrediction(w http.ResponseWriter, r *http.Request) {
 	tracer := opentracing.GlobalTracer()
 	span := tracer.StartSpan("cityHandlers.GetCityWithPrediction")
@@ -139,17 +140,12 @@ func (h *cityHandlers) GetCityWithPrediction(w http.ResponseWriter, r *http.Requ
 	defer span.Finish()
 
 	name := r.URL.Query().Get("name")
-	dateStr := r.URL.Query().Get("date")
+	timestamp := r.URL.Query().Get("date")
 
-	date, err := time.Parse("2006-01-02T15:04:05Z", dateStr)
+	city, err := h.cityUC.GetCityWithPrediction(ctx, name, timestamp)
 	if err != nil {
-		http.Error(w, "Invalid date format", http.StatusBadRequest)
-		return
-	}
-
-	city, err := h.cityUC.GetCityWithPrediction(ctx, name, date)
-	if err != nil {
-		http.Error(w, "Error getting city with prediction", http.StatusInternalServerError)
+		h.logger.Error("Error getting city with prediction", err)
+		http.Error(w, fmt.Sprintf("Error getting city with prediction - %s", err), http.StatusInternalServerError)
 		return
 	}
 

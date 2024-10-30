@@ -40,10 +40,10 @@ docker_delve:
 	echo "Starting docker debug environment"
 	sudo docker compose -f docker-compose.delve.yml up --build
 
-docker_up:
-	sudo docker compose up -d
+docker_local_up:
+	sudo docker compose -f docker-compose.yml up -d
 
-local:
+local_build:
 	echo "Starting local environment"
 	sudo docker compose -f docker-compose.yml up --build
 
