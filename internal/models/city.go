@@ -14,6 +14,13 @@ type CityDB struct {
 	Predictions []PredictionDB `json:"predictions"`
 }
 
+type CityToUpdate struct {
+	Id   int64   `json:"id"`
+	Name string  `json:"name"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
+}
+
 // Predictions base model
 type PredictionDB struct {
 	Temp int             `json:"temp"`

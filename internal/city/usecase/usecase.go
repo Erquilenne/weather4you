@@ -27,7 +27,18 @@ func NewCityUseCase(cfg *config.Config, cityRepo city.Repository, logger logger.
 func (u *cityUC) Create(ctx context.Context, city *models.CityDB) error {
 	span, ctx := opentracing.StartSpanFromContext(ctx, "cityUC.Create")
 	defer span.Finish()
-	return u.cityRepo.Create(ctx, city)
+	id, err := u.cityRepo.SaveCity(ctx, city)
+	if err != nil {
+		return err
+	}
+
+	for _, prediction := range city.Predictions {
+		err = u.cityRepo.SavePrediction(ctx, id, &prediction)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (u *cityUC) GetCitiesList(ctx context.Context) ([]*models.CityLight, error) {
