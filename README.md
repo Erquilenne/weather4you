@@ -10,6 +10,7 @@
 3. go install
 5. make local_build
 4. make migrate_up
+5. make fillup
 6. go run cmd/main.go
 
 Миграции применяются автоматически при запуске программы
