@@ -8,7 +8,9 @@
 1. в файле config/config.json добавить свой ключ для работы с апи openweather
 2. и создать локальную бд postgres с названием "weather4you"(в конфиге можно поменять)
 3. go install
-4. go run cmd/main.go
+4. make migrate_up
+5. make local_build
+6. go run cmd/main.go
 
 Миграции применяются автоматически при запуске программы
 Базовый список городов тоже находится в конфиге
